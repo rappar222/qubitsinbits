@@ -1,4 +1,5 @@
 use crate::algorithms::*;
+use crate::editor_syntax::highlight_qasm;
 use crate::quantum::complex::format_complex;
 use crate::quantum::gate::GateOp;
 use crate::quantum::qasm::{QasmInstruction, QasmParser};
@@ -806,26 +807,70 @@ impl QuantumApp {
 
         // 2-Column Split: Left = Code Editor, Right = Live Execution View
         let available_size = ui.available_size();
-        let editor_width = (available_size.x * 0.48).max(300.0);
+        let editor_width = (available_size.x * 0.48).max(340.0);
+        let full_height = ui.available_height().max(520.0);
 
         ui.horizontal(|ui| {
             // LEFT COLUMN: QASM Code Editor
             ui.vertical(|ui| {
                 ui.set_width(editor_width);
-                ui.label(egui::RichText::new("Source Code Editor:").strong());
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("📄 Source Code (OpenQASM 2.0):").strong());
+                    let line_count = self.qasm_editor_text.lines().count();
+                    ui.label(egui::RichText::new(format!("{} lines", line_count)).color(egui::Color32::GRAY));
+                });
+                ui.add_space(2.0);
 
-                egui::ScrollArea::vertical()
-                    .max_height(available_size.y - 30.0)
+                egui::Frame::canvas(ui.style())
+                    .fill(egui::Color32::from_rgb(20, 20, 24))
+                    .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(60, 60, 75)))
+                    .rounding(egui::Rounding::same(6.0))
+                    .inner_margin(egui::Margin::same(6.0))
                     .show(ui, |ui| {
-                        let text_edit = egui::TextEdit::multiline(&mut self.qasm_editor_text)
-                            .font(egui::TextStyle::Monospace)
-                            .desired_width(editor_width - 10.0)
-                            .desired_rows(24)
-                            .code_editor();
-                        if ui.add(text_edit).changed() {
-                            // Automatically compile on code edit
-                            self.compile_and_run_qasm();
-                        }
+                        egui::ScrollArea::both()
+                            .id_source("ide_code_editor_scroll")
+                            .min_scrolled_height(full_height - 30.0)
+                            .max_height(full_height)
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    // Line numbers gutter
+                                    let line_count = self.qasm_editor_text.lines().count().max(1);
+                                    let mut line_gutter = String::with_capacity(line_count * 5);
+                                    for i in 1..=line_count {
+                                        line_gutter.push_str(&format!("{:>3}\n", i));
+                                    }
+
+                                    ui.add(
+                                        egui::Label::new(
+                                            egui::RichText::new(line_gutter)
+                                                .font(egui::FontId::monospace(13.0))
+                                                .color(egui::Color32::from_rgb(90, 95, 115)),
+                                        )
+                                    );
+
+                                    ui.add_space(6.0);
+                                    // Vertical separator line in gutter
+                                    let (sep_rect, _) = ui.allocate_exact_size(egui::vec2(1.0, (line_count as f32 * 18.0).max(full_height - 50.0)), egui::Sense::hover());
+                                    ui.painter().line_segment([sep_rect.min, sep_rect.max], egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(45, 45, 55)));
+                                    ui.add_space(6.0);
+
+                                    // Editor with full syntax highlighting!
+                                    let mut layouter = |ui: &egui::Ui, text: &str, wrap_width: f32| {
+                                        highlight_qasm(ui, text, wrap_width)
+                                    };
+
+                                    let text_edit = egui::TextEdit::multiline(&mut self.qasm_editor_text)
+                                        .font(egui::FontId::monospace(13.0))
+                                        .desired_width(editor_width - 80.0)
+                                        .min_size(egui::vec2(editor_width - 80.0, (line_count as f32 * 19.0).max(full_height - 50.0)))
+                                        .layouter(&mut layouter)
+                                        .code_editor();
+
+                                    if ui.add(text_edit).changed() {
+                                        self.compile_and_run_qasm();
+                                    }
+                                });
+                            });
                     });
             });
 
@@ -833,6 +878,7 @@ impl QuantumApp {
 
             // RIGHT COLUMN: Live Execution & Diagnostics
             ui.vertical(|ui| {
+                ui.set_width((available_size.x - editor_width - 25.0).max(280.0));
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut self.qasm_side_tab, QasmSideTab::StateVector, "📊 State");
                     ui.selectable_value(&mut self.qasm_side_tab, QasmSideTab::BlochSpheres, "🌐 Bloch");
