@@ -67,7 +67,9 @@ cargo test
 Launch the interactive REPL with 3 qubits (or any $N$):
 
 ```bash
-cargo run --release -- repl --qubits 3
+qubitbit --cli
+# or
+qubitbit repl --qubits 3
 ```
 
 Within the REPL:
