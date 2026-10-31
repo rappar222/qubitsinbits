@@ -111,6 +111,16 @@ enum Commands {
         oracle: String,
     },
 
+    /// Execute an OpenQASM 2.0 source code file (.qasm)
+    Run {
+        /// Path to the .qasm file to execute
+        file: std::path::PathBuf,
+
+        /// Number of measurement shots to sample
+        #[arg(short, long, default_value_t = 1000)]
+        shots: usize,
+    },
+
     /// Benchmark quantum gate execution speeds across different qubit counts
     Benchmark {
         /// Maximum number of qubits to benchmark (up to 24)
@@ -288,6 +298,35 @@ fn main() {
                 println!("Result: {} (Probability of |0...0>: {:.2}%)", "CONSTANT FUNCTION".green().bold(), p_zero_all_inputs * 100.0);
             } else {
                 println!("Result: {} (Probability of non-|0...0>: {:.2}%)", "BALANCED FUNCTION".magenta().bold(), (1.0 - p_zero_all_inputs) * 100.0);
+            }
+        }
+        Some(Commands::Run { file, shots }) => {
+            println!("{}", format!("=== Executing OpenQASM File: {} ===", file.display()).bold().cyan());
+            let content = match std::fs::read_to_string(&file) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("{}", format!("Failed to read file '{}': {}", file.display(), e).red());
+                    return;
+                }
+            };
+
+            match QasmParser::parse(&content) {
+                Ok((circuit, _)) => {
+                    println!("Compiled {} qubits, {} gates successfully.\n", circuit.num_qubits, circuit.operations.len());
+                    println!("Circuit Diagram:");
+                    println!("{}", circuit.to_ascii_diagram());
+
+                    let state = circuit.run();
+                    print_state_table(&state, 1e-4);
+                    print_bloch_sphere(&state);
+
+                    let mut rng = thread_rng();
+                    let counts = state.sample_shots(shots, &mut rng);
+                    print_histogram(&counts, circuit.num_qubits, shots);
+                }
+                Err(e) => {
+                    eprintln!("{}", format!("OpenQASM Parse Error: {}", e).red().bold());
+                }
             }
         }
         Some(Commands::Benchmark { max_qubits }) => {

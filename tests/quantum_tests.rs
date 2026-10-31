@@ -181,3 +181,38 @@ fn test_projective_measurement_collapse() {
         assert!(p1_zero < 1e-6);
     }
 }
+
+#[test]
+fn test_qasm_parser_bell_state() {
+    let qasm = r#"
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[2];
+        creg c[2];
+
+        h q[0];
+        cx q[0], q[1];
+    "#;
+
+    let (circuit, instructions) = QasmParser::parse(qasm).expect("Failed to parse QASM");
+    assert_eq!(circuit.num_qubits, 2);
+    assert_eq!(circuit.operations.len(), 2);
+    assert_eq!(instructions.len(), 2);
+
+    let state = circuit.run();
+    let probs = state.probabilities();
+    assert!((probs[0] - 0.5).abs() < 1e-5);
+    assert!((probs[3] - 0.5).abs() < 1e-5);
+}
+
+#[test]
+fn test_qasm_math_expressions() {
+    let qasm = r#"
+        qreg q[1];
+        rx(pi/2) q[0];
+        rz(-pi/4) q[0];
+    "#;
+
+    let (circuit, _) = QasmParser::parse(qasm).expect("Failed to parse QASM with angles");
+    assert_eq!(circuit.operations.len(), 2);
+}

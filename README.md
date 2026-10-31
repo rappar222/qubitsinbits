@@ -6,6 +6,15 @@ A state-of-the-art $N$-qubit quantum computer simulator written in Rust. It feat
 
 ## Features
 
+- **Built-In OpenQASM 2.0 IDE & Debugger**:
+  - **Full OpenQASM 2.0 Parser**: Run real OpenQASM code directly inside the simulator without external tools.
+  - **IDE Code Editor**: Interactive code editor with line-by-line syntax checking, instant compiler feedback, and error reporting.
+  - **Step-by-Step Instruction Stepper**: Step line-by-line forward/backward through your QASM program and watch the quantum state evolve after each gate!
+  - **Side-by-Side Live Dashboard**: Instant live statevector table, Dirac notation, Bloch spheres, and measurement shots simulator while typing code.
+  - **Code Templates & Quick Insert**: Pre-loaded with Bell states, GHZ, Teleportation, Superdense coding, Grover's search, QFT, and quick gate insert buttons (`+ H`, `+ CX`, `+ X`, `+ Rz`, `+ Measure`).
+  - **File I/O**: Open and save `.qasm` files directly from the IDE.
+  - **CLI QASM Runner**: Execute `.qasm` scripts directly from your terminal with `qubitbit run file.qasm`.
+
 - **Dual GUI & CLI Interfaces**:
   - **Native Desktop GUI** (powered by `eframe` / `egui`):
     - Visual interactive quantum circuit track.
