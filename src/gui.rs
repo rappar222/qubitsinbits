@@ -500,41 +500,99 @@ impl QuantumApp {
                     let phi_pos = if phi < 0.0 { phi + 2.0 * PI } else { phi };
 
                     ui.group(|ui| {
-                        ui.set_width(220.0);
-                        ui.heading(format!("Qubit q[{}]", q));
+                        ui.set_width(240.0);
+                        ui.vertical(|ui| {
+                            ui.horizontal(|ui| {
+                                ui.heading(format!("Qubit q[{}]", q));
+                                let is_pure = (purity - 1.0).abs() < 1e-3;
+                                if is_pure {
+                                    ui.colored_label(egui::Color32::LIGHT_GREEN, "● Pure");
+                                } else {
+                                    ui.colored_label(egui::Color32::YELLOW, "● Entangled");
+                                }
+                            });
+                            ui.separator();
 
-                        // 2D Bloch Projection Painter
-                        let (rect, _response) = ui.allocate_exact_size(egui::vec2(160.0, 160.0), egui::Sense::hover());
-                        let painter = ui.painter_at(rect);
-                        let center = rect.center();
-                        let radius = 65.0_f32;
+                            // 2D Bloch Projection Painter (X vs Z axes projection)
+                            let (rect, _response) = ui.allocate_exact_size(egui::vec2(220.0, 170.0), egui::Sense::hover());
+                            let painter = ui.painter_at(rect);
+                            let center = rect.center();
+                            let radius = 55.0_f32;
 
-                        // Draw sphere circle & axes
-                        painter.circle_stroke(center, radius, egui::Stroke::new(1.5_f32, egui::Color32::GRAY));
-                        painter.line_segment([center - egui::vec2(radius, 0.0), center + egui::vec2(radius, 0.0)], egui::Stroke::new(0.5_f32, egui::Color32::DARK_GRAY));
-                        painter.line_segment([center - egui::vec2(0.0, radius), center + egui::vec2(0.0, radius)], egui::Stroke::new(0.5_f32, egui::Color32::DARK_GRAY));
+                            // Draw sphere circle & axes
+                            painter.circle_stroke(center, radius, egui::Stroke::new(1.5_f32, egui::Color32::from_gray(120)));
+                            painter.line_segment(
+                                [center - egui::vec2(radius + 8.0, 0.0), center + egui::vec2(radius + 8.0, 0.0)],
+                                egui::Stroke::new(0.8_f32, egui::Color32::from_gray(70)),
+                            );
+                            painter.line_segment(
+                                [center - egui::vec2(0.0, radius + 8.0), center + egui::vec2(0.0, radius + 8.0)],
+                                egui::Stroke::new(0.8_f32, egui::Color32::from_gray(70)),
+                            );
 
-                        // Labels |0> (top) and |1> (bottom)
-                        painter.text(center - egui::vec2(0.0, radius + 10.0), egui::Align2::CENTER_CENTER, "|0⟩", egui::FontId::monospace(12.0), egui::Color32::WHITE);
-                        painter.text(center + egui::vec2(0.0, radius + 10.0), egui::Align2::CENTER_CENTER, "|1⟩", egui::FontId::monospace(12.0), egui::Color32::WHITE);
-                        painter.text(center + egui::vec2(radius + 12.0, 0.0), egui::Align2::CENTER_CENTER, "|+⟩", egui::FontId::monospace(10.0), egui::Color32::GRAY);
+                            // Labels |0> (top), |1> (bottom), |+> (right), |-> (left)
+                            painter.text(
+                                center - egui::vec2(0.0, radius + 14.0),
+                                egui::Align2::CENTER_CENTER,
+                                "|0>",
+                                egui::FontId::monospace(12.0),
+                                egui::Color32::WHITE,
+                            );
+                            painter.text(
+                                center + egui::vec2(0.0, radius + 14.0),
+                                egui::Align2::CENTER_CENTER,
+                                "|1>",
+                                egui::FontId::monospace(12.0),
+                                egui::Color32::WHITE,
+                            );
+                            painter.text(
+                                center + egui::vec2(radius + 14.0, 0.0),
+                                egui::Align2::CENTER_CENTER,
+                                "|+>",
+                                egui::FontId::monospace(10.0),
+                                egui::Color32::from_gray(160),
+                            );
+                            painter.text(
+                                center - egui::vec2(radius + 14.0, 0.0),
+                                egui::Align2::CENTER_CENTER,
+                                "|->",
+                                egui::FontId::monospace(10.0),
+                                egui::Color32::from_gray(160),
+                            );
 
-                        // State vector arrow (X vs Z projection)
-                        let arrow_tip = center + egui::vec2((rx as f32) * radius, (-rz as f32) * radius);
-                        painter.line_segment([center, arrow_tip], egui::Stroke::new(2.5_f32, egui::Color32::from_rgb(255, 100, 100)));
-                        painter.circle_filled(arrow_tip, 4.0, egui::Color32::from_rgb(255, 50, 50));
+                            // State vector arrow (X vs Z projection)
+                            let arrow_tip = center + egui::vec2((rx as f32) * radius, (-rz as f32) * radius);
+                            painter.line_segment(
+                                [center, arrow_tip],
+                                egui::Stroke::new(2.5_f32, egui::Color32::from_rgb(255, 90, 90)),
+                            );
+                            painter.circle_filled(arrow_tip, 4.5, egui::Color32::from_rgb(255, 60, 60));
 
-                        ui.add_space(4.0);
-                        ui.label(format!("r = ({:.2}, {:.2}, {:.2})", rx, ry, rz));
-                        ui.label(format!("θ = {:.2} rad ({:.0}°)", theta, theta * 180.0 / PI));
-                        ui.label(format!("ϕ = {:.2} rad ({:.0}°)", phi_pos, phi_pos * 180.0 / PI));
+                            ui.add_space(6.0);
+                            ui.separator();
 
-                        let is_pure = (purity - 1.0).abs() < 1e-3;
-                        if is_pure {
-                            ui.colored_label(egui::Color32::LIGHT_GREEN, format!("Purity: {:.3} (Pure)", purity));
-                        } else {
-                            ui.colored_label(egui::Color32::YELLOW, format!("Purity: {:.3} (Entangled)", purity));
-                        }
+                            egui::Grid::new(format!("bloch_coords_grid_{}", q))
+                                .min_col_width(70.0)
+                                .show(ui, |ui| {
+                                    ui.label("r vector:");
+                                    ui.monospace(format!("({:.2}, {:.2}, {:.2})", rx, ry, rz));
+                                    ui.end_row();
+
+                                    ui.label("theta (θ):");
+                                    ui.monospace(format!("{:.1}° ({:.2} rad)", theta * 180.0 / PI, theta));
+                                    ui.end_row();
+
+                                    ui.label("phi (φ):");
+                                    ui.monospace(format!("{:.1}° ({:.2} rad)", phi_pos * 180.0 / PI, phi_pos));
+                                    ui.end_row();
+
+                                    ui.label("Purity:");
+                                    let is_pure = (purity - 1.0).abs() < 1e-3;
+                                    let col = if is_pure { egui::Color32::LIGHT_GREEN } else { egui::Color32::YELLOW };
+                                    ui.colored_label(col, format!("{:.3}", purity));
+                                    ui.end_row();
+                                });
+                        });
                     });
                 }
             });
