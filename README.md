@@ -6,7 +6,16 @@ A state-of-the-art $N$-qubit quantum computer simulator written in Rust. It feat
 
 ## Features
 
-- **Arbitrary $N$-Qubit Statevector Engine**:
+- **Dual GUI & CLI Interfaces**:
+  - **Native Desktop GUI** (powered by `eframe` / `egui`):
+    - Visual interactive quantum circuit track.
+    - Gate palette: click to apply single-qubit ($H, X, Y, Z, S, S^\dagger, T, T^\dagger$), rotation ($R_x, R_y, R_z$, Phase), and multi-qubit ($CX, CZ, SWAP, CP, CCX$) gates.
+    - Live statevector table with Dirac notation, complex numbers, magnitude, phase, and probability progress bars.
+    - 2D Bloch sphere projections for each individual qubit showing state vectors, spherical angles $(\theta, \phi)$, and purity to visualize entanglement.
+    - Monte Carlo measurement simulator with configurable shots and interactive bar charts.
+    - Live OpenQASM 2.0 viewer and one-click clipboard exporter.
+    - One-click algorithm presets: Bell states, GHZ, Teleportation, Superdense Coding, Grover's Search, and QFT.
+  - **Interactive Terminal REPL & CLI**: Full command-line interface with step-by-step evaluation, ASCII diagrams, and subcommands.
   - Full $2^N$ complex amplitude state space (`num-complex::Complex64`).
   - Bit-stride gate application without allocating sparse/dense matrix operators.
   - Multi-threaded parallel acceleration for registers $\ge 12$ qubits.

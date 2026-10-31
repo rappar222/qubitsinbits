@@ -2,9 +2,11 @@ use clap::{Parser, Subcommand};
 use colored::*;
 use quantum_sim::algorithms::*;
 use quantum_sim::display::*;
+use quantum_sim::gui::run_gui;
 use quantum_sim::quantum::*;
 use quantum_sim::repl::start_repl;
 use rand::thread_rng;
+use std::env;
 use std::f64::consts::PI;
 use std::time::Instant;
 
@@ -13,17 +15,27 @@ use std::time::Instant;
     name = "quantum_sim",
     author = "Quantum Simulator in Rust",
     version = "0.1.0",
-    about = "High-performance N-qubit Quantum Computer Simulator with Statevector Math, Gate Decomposition, Algorithms & Interactive REPL",
+    about = "High-performance N-qubit Quantum Computer Simulator with GUI, CLI, Interactive REPL & Algorithms",
     long_about = None
 )]
 struct Cli {
+    /// Force CLI mode instead of GUI
+    #[arg(long, global = true)]
+    cli: bool,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Launch interactive quantum REPL (default if no subcommand given)
+    /// Launch the Graphical User Interface (default if display server is available)
+    Gui {
+        #[arg(short, long, default_value_t = 3)]
+        qubits: usize,
+    },
+
+    /// Launch interactive quantum CLI REPL
     Repl {
         #[arg(short, long, default_value_t = 3)]
         qubits: usize,
@@ -110,9 +122,22 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
 
+    let has_display = env::var("DISPLAY").is_ok() || env::var("WAYLAND_DISPLAY").is_ok();
+
     match cli.command {
         None => {
-            start_repl(3);
+            if cli.cli || !has_display {
+                start_repl(3);
+            } else if let Err(e) = run_gui(3) {
+                eprintln!("Failed to launch GUI: {}. Falling back to CLI REPL...", e);
+                start_repl(3);
+            }
+        }
+        Some(Commands::Gui { qubits }) => {
+            if let Err(e) = run_gui(qubits) {
+                eprintln!("Failed to launch GUI: {}. Falling back to CLI REPL...", e);
+                start_repl(qubits);
+            }
         }
         Some(Commands::Repl { qubits }) => {
             start_repl(qubits);
